@@ -116,11 +116,12 @@ class QtTimeMgrWindow(QMainWindow):
             #read project id from database
             for project in vProjectsFromDB:
                 curProjectIdFromDb = project[0]
+                curProjectNameFromDb = project[1]
 
             #insert tracking result into database
-            vSqlQuery = ''' INSERT INTO timetracking(project_id, date, calendarweek, month, year, starttimestamp, endtimestamp, created_on, last_edited_on)
-                            VALUES(?,?,?,?,?,?,?,?,?) '''
-            vSqlData = (curProjectIdFromDb, str(self.curDay), self.curWeek, self.curDay.month, self.curDay.year, floor(self.startTimestamp), floor(self.endTimestamp), str(self.curDay), str(self.curDay))
+            vSqlQuery = ''' INSERT INTO timetracking(project_id, project_name, date, calendarweek, month, year, starttimestamp, endtimestamp, created_on, last_edited_on)
+                            VALUES(?,?,?,?,?,?,?,?,?,?) '''
+            vSqlData = (curProjectIdFromDb, curProjectNameFromDb, str(self.curDay), self.curWeek, self.curDay.month, self.curDay.year, floor(self.startTimestamp), floor(self.endTimestamp), str(self.curDay), str(self.curDay))
             sqlResult = insertDbData(self.sqlCon, vSqlQuery, vSqlData)
 
     #save manually entered time
@@ -151,11 +152,12 @@ class QtTimeMgrWindow(QMainWindow):
             #read project id from database
             for project in vProjectsFromDB:
                 curProjectIdFromDb = project[0]
+                curProjectNameFromDb = project[1]
 
             #insert tracking result into database
-            vSqlQuery = ''' INSERT INTO timetracking(project_id, date, calendarweek, month, year, starttimestamp, endtimestamp, created_on, last_edited_on)
-                            VALUES(?,?,?,?,?,?,?,?,?) '''
-            vSqlData = (curProjectIdFromDb, str(self.curDay), self.curWeek, self.curDay.month, self.curDay.year, floor(self.startTimestamp), floor(self.endTimestamp), str(self.curDay), str(self.curDay))
+            vSqlQuery = ''' INSERT INTO timetracking(project_id, project_name, date, calendarweek, month, year, starttimestamp, endtimestamp, created_on, last_edited_on)
+                            VALUES(?,?,?,?,?,?,?,?,?,?) '''
+            vSqlData = (curProjectIdFromDb, curProjectNameFromDb, str(self.curDay), self.curWeek, self.curDay.month, self.curDay.year, floor(self.startTimestamp), floor(self.endTimestamp), str(self.curDay), str(self.curDay))
             sqlResult = insertDbData(self.sqlCon, vSqlQuery, vSqlData)
 
     #toggle visibility of widgets for manual tracking if button is checked/unchecked
@@ -194,10 +196,10 @@ class QtTimeMgrWindow(QMainWindow):
                 
                 if self.vSumOrSingle == False:
                     self.printMessage("Date; Project; Duration")
-                    vSqlQuery = """SELECT t.date, p.name, t.endtimestamp-t.starttimestamp from timetracking t, projects p where t.date = ? and p.id=t.project_id"""
+                    vSqlQuery = """SELECT t.date, t.project_name, t.endtimestamp-t.starttimestamp from timetracking t where t.date = ?"""
                 else:
                     self.printMessage("Date; Project; Duration (sum)")
-                    vSqlQuery = """SELECT t.date, p.name, sum(t.endtimestamp-t.starttimestamp) from timetracking t, projects p where t.date = ? and p.id=t.project_id group by t.date, p.name"""
+                    vSqlQuery = """SELECT t.date, t.project_name, sum(t.endtimestamp-t.starttimestamp) from timetracking t where t.date = ?group by t.date, t.project_name"""
                 vSqlData = (self.curDay,)
                 self.getDataFromDb(vSqlQuery, vSqlData)
             case 2:
@@ -205,10 +207,10 @@ class QtTimeMgrWindow(QMainWindow):
                 
                 if self.vSumOrSingle == False:
                     self.printMessage("Date; Project; Duration")
-                    vSqlQuery = """SELECT t.date, p.name, t.endtimestamp-t.starttimestamp from timetracking t, projects p where t.date = ? and p.id=t.project_id"""
+                    vSqlQuery = """SELECT t.date, t.project_name, t.endtimestamp-t.starttimestamp from timetracking t where t.date = ?"""
                 else:
                     self.printMessage("Date; Project; Duration (sum)")
-                    vSqlQuery = """SELECT t.date, p.name, sum(t.endtimestamp-t.starttimestamp) from timetracking t, projects p where t.date = ? and p.id=t.project_id group by t.date, p.name"""
+                    vSqlQuery = """SELECT t.date, t.project_name, sum(t.endtimestamp-t.starttimestamp) from timetracking t where t.date = ? group by t.date, t.project_name"""
                 vSqlData = (self.curDay - timedelta(days=1),)
                 self.getDataFromDb(vSqlQuery, vSqlData)
             case 3:
@@ -216,10 +218,10 @@ class QtTimeMgrWindow(QMainWindow):
               
                 if self.vSumOrSingle == False:
                     self.printMessage("Date; Project; Duration")
-                    vSqlQuery = """SELECT t.date, p.name, t.endtimestamp-t.starttimestamp from timetracking t, projects p where t.calendarweek = ? and t.year = ? and p.id=t.project_id"""
+                    vSqlQuery = """SELECT t.date, t.project_name, t.endtimestamp-t.starttimestamp from timetracking t where t.calendarweek = ? and t.year = ?"""
                 else:
                     self.printMessage("Date; Project; Duration (sum)")
-                    vSqlQuery = """SELECT t.date, p.name, sum(t.endtimestamp-t.starttimestamp) from timetracking t, projects p where t.calendarweek = ? and t.year = ? and p.id=t.project_id group by t.date, p.name"""
+                    vSqlQuery = """SELECT t.date, t.project_name, sum(t.endtimestamp-t.starttimestamp) from timetracking t where t.calendarweek = ? and t.year = ? group by t.date, t.project_name"""
                 vSqlData = (self.curWeek, self.curDay.year)
                 self.getDataFromDb(vSqlQuery, vSqlData)
 
@@ -231,10 +233,10 @@ class QtTimeMgrWindow(QMainWindow):
               
                 if self.vSumOrSingle == False:
                     self.printMessage("Date; Project; Duration")
-                    vSqlQuery = """SELECT t.date, p.name, t.endtimestamp-t.starttimestamp from timetracking t, projects p where t.month = ? and t.year = ? and p.id=t.project_id"""
+                    vSqlQuery = """SELECT t.date, t.project_name, t.endtimestamp-t.starttimestamp from timetracking t where t.month = ? and t.year = ?"""
                 else:
                     self.printMessage("Date; Project; Duration (sum)")
-                    vSqlQuery = """SELECT t.date, p.name, sum(t.endtimestamp-t.starttimestamp) from timetracking t, projects p where t.month = ? and t.year = ? and p.id=t.project_id group by t.date, p.name"""
+                    vSqlQuery = """SELECT t.date, t.project_name, sum(t.endtimestamp-t.starttimestamp) from timetracking t where t.month = ? and t.year = ? group by t.date, t.project_name"""
                 vSqlData = (self.curDay.month, self.curDay.year)
                 self.getDataFromDb(vSqlQuery, vSqlData)
 
@@ -282,6 +284,32 @@ class QtTimeMgrWindow(QMainWindow):
         self.cProject.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.cProject.setCompletionMode(QCompleter.CompletionMode.UnfilteredPopupCompletion)
         self.iProject.setCompleter(self.cProject)
+    
+    def deleteProject(self):
+        vDeleteProject, okPressed = self.iDeleteProject = QInputDialog.getItem(self, "Enter Project", "Enter Project", self.lProjects, 0, False)
+        if okPressed == 1:
+            #query on pk --> results in exactly one record
+            vProjectsFromDB = selectDbData(self.sqlCon, """SELECT * from projects where name = ?""", (vDeleteProject,))
+            #read project id from database
+            for project in vProjectsFromDB:
+                curProjectIdFromDb = project[0]
+            #delete project
+            deleteDbData(self.sqlCon, """DELETE from projects where id = ?""", (curProjectIdFromDb,))
+            
+            #update projectlist
+            vSqlResults = selectDbData(self.sqlCon, """SELECT * from projects order by name asc""", ())
+            self.lProjects = []
+            for results in vSqlResults:
+                self.lProjects.append(results[1])
+
+            #transfer new list to completer
+            self.cProject = QCompleter(self.lProjects,self)
+            self.cProject.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+            self.cProject.setCompletionMode(QCompleter.CompletionMode.UnfilteredPopupCompletion)
+            self.iProject.setCompleter(self.cProject)
+
+    def deleteTrackingEntry(self):
+        None
         
     def setupUIfunctions(self):
         
@@ -328,6 +356,12 @@ class QtTimeMgrWindow(QMainWindow):
 
         #print sum per day and project or every single entry?
         self.cSumOrSingle.stateChanged.connect(self.getSumOrSingle)
+
+        #delete project from database
+        self.bDeleteProject.triggered.connect(self.deleteProject)
+
+        #delete single timetracking entry
+        self.bDeleteTrackingEntry.triggered.connect(self.deleteTrackingEntry)
   
 
     def __init__(self, sqlVer, sqlCon):
@@ -402,6 +436,7 @@ def createDbModel(conn):
     sql_create_timetracking_table = """CREATE TABLE IF NOT EXISTS timetracking (
                                     id integer PRIMARY KEY,
                                     project_id integer,
+                                    project_name text,
                                     date text NOT NULL,
                                     calendarweek text NOT NULL,
                                     month text NOT NULL,
@@ -435,6 +470,13 @@ def selectDbData(conn, sqlQuery, whereData):
     except sqlite3.Error as e:
         return e
 
+def deleteDbData(conn, sqlQuery, whereData):
+    try:
+        dbCursor = conn.cursor()
+        dbCursor.execute(sqlQuery, whereData)
+        conn.commit()
+    except sqlite3.Error as e:
+        return e
 
 def main():
 

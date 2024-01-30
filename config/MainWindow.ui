@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1197</width>
+    <width>1195</width>
     <height>771</height>
    </rect>
   </property>
@@ -248,7 +248,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1197</width>
+     <width>1195</width>
      <height>30</height>
     </rect>
    </property>
@@ -258,6 +258,8 @@
     </property>
     <addaction name="bClear"/>
     <addaction name="bClearDb"/>
+    <addaction name="bDeleteProject"/>
+    <addaction name="bDeleteTrackingEntry"/>
    </widget>
    <addaction name="menuMisc"/>
   </widget>
@@ -270,6 +272,16 @@
   <action name="bClearDb">
    <property name="text">
     <string>Clear Database</string>
+   </property>
+  </action>
+  <action name="bDeleteProject">
+   <property name="text">
+    <string>Delete project</string>
+   </property>
+  </action>
+  <action name="bDeleteTrackingEntry">
+   <property name="text">
+    <string>Delete tracking entry</string>
    </property>
   </action>
  </widget>

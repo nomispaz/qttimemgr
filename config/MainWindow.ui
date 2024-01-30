@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>QtTimeMgrWindow</class>
+ <widget class="QMainWindow" name="QtTimeMgrWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1197</width>
+    <height>771</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>nomispaz Qt Timetracker</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">font: 16pt &quot;Liberation Sans&quot;;</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QPlainTextEdit" name="oMainTextField">
+    <property name="geometry">
+     <rect>
+      <x>371</x>
+      <y>105</y>
+      <width>701</width>
+      <height>571</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QWidget" name="layoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>20</y>
+      <width>234</width>
+      <height>130</height>
+     </rect>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout_2">
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QLabel" name="label">
+         <property name="font">
+          <font>
+           <family>Liberation Sans</family>
+           <pointsize>16</pointsize>
+           <weight>50</weight>
+           <italic>false</italic>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Start Tracking</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <item>
+          <widget class="QLineEdit" name="iProject">
+           <property name="text">
+            <string/>
+           </property>
+           <property name="placeholderText">
+            <string>Enter project</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="bNewProject">
+           <property name="text">
+            <string>New</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <widget class="QPushButton" name="bStart">
+           <property name="text">
+            <string>Start</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="bEnd">
+           <property name="text">
+            <string>End</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QPushButton" name="bSaveTimeslot">
+    <property name="geometry">
+     <rect>
+      <x>11</x>
+      <y>308</y>
+      <width>151</width>
+      <height>33</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Save time slot</string>
+    </property>
+   </widget>
+   <widget class="QWidget" name="layoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>371</x>
+      <y>31</y>
+      <width>350</width>
+      <height>68</height>
+     </rect>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout_3">
+     <item>
+      <widget class="QLabel" name="label_2">
+       <property name="font">
+        <font>
+         <family>Liberation Sans</family>
+         <pointsize>16</pointsize>
+         <weight>50</weight>
+         <italic>false</italic>
+         <bold>false</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Results</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <item>
+        <widget class="QComboBox" name="lGetData">
+         <item>
+          <property name="text">
+           <string>please select date</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>current day</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>last day</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>current week</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>last week</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>current month</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>last month</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>custom date</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="cSumOrSingle">
+         <property name="text">
+          <string>Sum entries</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QDateTimeEdit" name="iDatetimeStart">
+    <property name="geometry">
+     <rect>
+      <x>12</x>
+      <y>229</y>
+      <width>193</width>
+      <height>33</height>
+     </rect>
+    </property>
+    <property name="displayFormat">
+     <string>dd.MM.yyyy hh:mm</string>
+    </property>
+    <property name="calendarPopup">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="bManualTracking">
+    <property name="geometry">
+     <rect>
+      <x>12</x>
+      <y>192</y>
+      <width>179</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Manual Tracking</string>
+    </property>
+   </widget>
+   <widget class="QDateTimeEdit" name="iDatetimeEnd">
+    <property name="geometry">
+     <rect>
+      <x>12</x>
+      <y>268</y>
+      <width>193</width>
+      <height>33</height>
+     </rect>
+    </property>
+    <property name="displayFormat">
+     <string>dd.MM.yyyy hh:mm</string>
+    </property>
+    <property name="calendarPopup">
+     <bool>true</bool>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1197</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuMisc">
+    <property name="title">
+     <string>Misc</string>
+    </property>
+    <addaction name="bClear"/>
+    <addaction name="bClearDb"/>
+   </widget>
+   <addaction name="menuMisc"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="bClear">
+   <property name="text">
+    <string>Clear Ouput</string>
+   </property>
+  </action>
+  <action name="bClearDb">
+   <property name="text">
+    <string>Clear Database</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

@@ -14,7 +14,6 @@ from time import sleep
 from datetime import date, datetime, timedelta
 from math import floor, ceil
 import sqlite3
-from PyQt6 import uic
 
 from PyQt6.QtCore import QSize, Qt, QProcess, QByteArray
 from PyQt6.QtGui import QFont
@@ -93,71 +92,64 @@ class QtTimeMgrWindow(QMainWindow):
 
     #stop timer
     def endTimer(self):
-        if not self.curProject == "":
-            self.endTime = datetime.now().strftime("%H:%M:%S")
-            self.endTimestamp = datetime.timestamp(datetime.now())
-            #print end message
-            self.printMessage(
-                str(self.endTime)
-                + " : "
-                + self.curProject
-                + " , Tracking ended. Duration: " + 
-                    #convert timestamps to hh:mm:ss
-                    str(
-                        timedelta(seconds=
-                            floor(self.endTimestamp-self.startTimestamp)
-                        )
+        self.endTime = datetime.now().strftime("%H:%M:%S")
+        self.endTimestamp = datetime.timestamp(datetime.now())
+        #print end message
+        self.printMessage(
+            str(self.endTime)
+            + " : "
+            + self.curProject
+            + " , Tracking ended. Duration: " + 
+                #convert timestamps to hh:mm:ss
+                str(
+                    timedelta(seconds=
+                        floor(self.endTimestamp-self.startTimestamp)
                     )
                 )
+            )
         
-            #query on pk --> results in exactly one record
-            vProjectsFromDB = selectDbData(self.sqlCon, """SELECT * from projects where name = ?""", (self.curProject,))
+        #query on pk --> results in exactly one record
+        vProjectsFromDB = selectDbData(self.sqlCon, """SELECT * from projects where name = ?""", (self.curProject,))
+        
+        #read project id from database
+        for project in vProjectsFromDB:
+            curProjectIdFromDb = project[0]
 
-            #read project id from database
-            for project in vProjectsFromDB:
-                curProjectIdFromDb = project[0]
+        #insert tracking result into database
+        vSqlQuery = ''' INSERT INTO timetracking(project_id, date, calendarweek, month, year, starttimestamp, endtimestamp, created_on, last_edited_on)
+                        VALUES(?,?,?,?,?,?,?,?,?) '''
+        vSqlData = (curProjectIdFromDb, str(self.curDay), self.curWeek, self.curDay.month, self.curDay.year, floor(self.startTimestamp), floor(self.endTimestamp), str(self.curDay), str(self.curDay))
+        sqlResult = insertDbData(self.sqlCon, vSqlQuery, vSqlData)
 
-            #insert tracking result into database
-            vSqlQuery = ''' INSERT INTO timetracking(project_id, date, calendarweek, month, year, starttimestamp, endtimestamp, created_on, last_edited_on)
-                            VALUES(?,?,?,?,?,?,?,?,?) '''
-            vSqlData = (curProjectIdFromDb, str(self.curDay), self.curWeek, self.curDay.month, self.curDay.year, floor(self.startTimestamp), floor(self.endTimestamp), str(self.curDay), str(self.curDay))
-            sqlResult = insertDbData(self.sqlCon, vSqlQuery, vSqlData)
+        #print result of insert statement
+        self.printMessage(str(sqlResult))
 
     #save manually entered time
     def saveTimeSlot(self):
         self.curProject = self.iProject.text()
-        #if no project was entered, don't start tracking
-        if self.curProject == "":
-            self.printMessage("Please enter a project")
-        else:
+        self.curDay = self.iDatetimeStart.dateTime().toPyDateTime().date()
+        #week
+        self.curWeek = self.iDatetimeStart.dateTime().toPyDateTime().isocalendar()[1]
+        #timestamp
+        self.startTimestamp = datetime.timestamp(self.iDatetimeStart.dateTime().toPyDateTime())
+        self.endTimestamp = datetime.timestamp(self.iDatetimeEnd.dateTime().toPyDateTime())
 
-            #if project doesn't exist in database, create it
-            vProjectsFromDB = selectDbData(self.sqlCon, """SELECT count(*) from projects where name = ?""", (self.curProject,))
-            for result in vProjectsFromDB:
-                projectcount = result[0]
-            if projectcount == 0:
-                self.addProject()
+        #query on pk --> results in exactly one record
+        vProjectsFromDB = selectDbData(self.sqlCon, """SELECT * from projects where name = ?""", (self.curProject,))
+        
+        #read project id from database
+        for project in vProjectsFromDB:
+            curProjectIdFromDb = project[0]
 
-            self.curDay = self.iDatetimeStart.dateTime().toPyDateTime().date()
-            #week
-            self.curWeek = self.iDatetimeStart.dateTime().toPyDateTime().isocalendar()[1]
-            #timestamp
-            self.startTimestamp = datetime.timestamp(self.iDatetimeStart.dateTime().toPyDateTime())
-            self.endTimestamp = datetime.timestamp(self.iDatetimeEnd.dateTime().toPyDateTime())
+        #insert tracking result into database
+        vSqlQuery = ''' INSERT INTO timetracking(project_id, date, calendarweek, month, year, starttimestamp, endtimestamp, created_on, last_edited_on)
+                        VALUES(?,?,?,?,?,?,?,?,?) '''
+        vSqlData = (curProjectIdFromDb, str(self.curDay), self.curWeek, self.curDay.month, self.curDay.year, floor(self.startTimestamp), floor(self.endTimestamp), str(self.curDay), str(self.curDay))
+        sqlResult = insertDbData(self.sqlCon, vSqlQuery, vSqlData)
 
-            #query on pk --> results in exactly one record
-            vProjectsFromDB = selectDbData(self.sqlCon, """SELECT * from projects where name = ?""", (self.curProject,))
-
-            #read project id from database
-            for project in vProjectsFromDB:
-                curProjectIdFromDb = project[0]
-
-            #insert tracking result into database
-            vSqlQuery = ''' INSERT INTO timetracking(project_id, date, calendarweek, month, year, starttimestamp, endtimestamp, created_on, last_edited_on)
-                            VALUES(?,?,?,?,?,?,?,?,?) '''
-            vSqlData = (curProjectIdFromDb, str(self.curDay), self.curWeek, self.curDay.month, self.curDay.year, floor(self.startTimestamp), floor(self.endTimestamp), str(self.curDay), str(self.curDay))
-            sqlResult = insertDbData(self.sqlCon, vSqlQuery, vSqlData)
-
+        #print result of insert statement
+        self.printMessage(str(sqlResult))
+        
     #toggle visibility of widgets for manual tracking if button is checked/unchecked
     def manualTracking(self):
         if self.bManualTracking.isChecked():
@@ -187,7 +179,6 @@ class QtTimeMgrWindow(QMainWindow):
     #wrapper for select statements of tracking results
     def getDataByMode(self, index):
         self.vGetDataMode = index
-        self.curDay = date.today()
         match self.vGetDataMode:
             case 1:
                 self.printMessage("Loading data for current day")
@@ -271,67 +262,133 @@ class QtTimeMgrWindow(QMainWindow):
         else:
             self.printMessage(result2)
         
-        #update projectlist
-        vSqlResults = selectDbData(self.sqlCon, """SELECT * from projects order by name asc""", ())
-        self.lProjects = []
-        for results in vSqlResults:
-            self.lProjects.append(results[1])
-        
-        #transfer new list to completer
-        self.cProject = QCompleter(self.lProjects,self)
-        self.cProject.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        self.cProject.setCompletionMode(QCompleter.CompletionMode.UnfilteredPopupCompletion)
-        self.iProject.setCompleter(self.cProject)
-        
-    def setupUIfunctions(self):
-        
-        #completer for project input field
+
+    def setupUI(self):
+        #create widgets
+
+        #Labels
+        self.label1 = QLabel("QT Timetracker", self)
+        self.label2 = QLabel("Results", self)
+        self.label3 = QLabel("Misc", self)
+
+        #project input field with completer
+        self.iProject = QLineEdit(self)
+        self.iProject.setPlaceholderText("Enter project")
+        #completer
         self.cProject = QCompleter(self.lProjects,self)
         self.cProject.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.cProject.setCompletionMode(QCompleter.CompletionMode.UnfilteredPopupCompletion)
         self.iProject.setCompleter(self.cProject)
 
         #create new project
+        self.bNewProject = QPushButton("New", self)
         self.bNewProject.clicked.connect(self.addProject)
 
         #start timetracking
+        self.bStart = QPushButton("Start",self)
         self.bStart.clicked.connect(self.startTimer)
         #end timetracking
+        self.bEnd = QPushButton("End",self)
         self.bEnd.clicked.connect(self.endTimer)
 
         #manually create entry
         #button for manual entry
+        self.bManualTracking = QPushButton("Manual", self)
+        self.bManualTracking.setCheckable(True)
         self.bManualTracking.clicked.connect(self.manualTracking)
 
         #date and time field for manual tracking
         #hidden as standard
+        self.iDatetimeStart = QDateTimeEdit(self)
+        self.iDatetimeStart.setCalendarPopup(True)
         self.iDatetimeStart.setDateTime(datetime.today())
+        self.iDatetimeStart.setDisplayFormat('dd.MM.yyyy hh:mm')
         self.iDatetimeStart.hide()
 
         #date and time field for manual tracking
         #hidden as standard
+        self.iDatetimeEnd = QDateTimeEdit(self)
+        self.iDatetimeEnd.setCalendarPopup(True)
         self.iDatetimeEnd.setDateTime(datetime.today())
+        self.iDatetimeEnd.setDisplayFormat('dd.MM.yyyy hh:mm')
         self.iDatetimeEnd.hide()
 
         #button to save manual tracking
+        self.bSaveTimeslot = QPushButton("Save time slot", self)
         self.bSaveTimeslot.clicked.connect(self.saveTimeSlot)
         self.bSaveTimeslot.hide()
 
         #clear output window
-        self.bClear.triggered.connect(self.clearOutput)
+        self.bClear = QPushButton("Clear output",self)
+        self.bClear.clicked.connect(self.clearOutput)
 
         #reset database
-        self.bClearDb.triggered.connect(self.clearDatabase)
+        self.bClearDb = QPushButton("Clear database",self)
+        self.bClearDb.clicked.connect(self.clearDatabase)
+
+        #output window
+        self.oMainTextField = QPlainTextEdit(self)
+        self.oMainTextField.setReadOnly(True)
 
         #dropdownlist of time intervals to load
+        self.lGetData = QComboBox(self)
+        self.lGetData.addItem("please select date")
+        self.lGetData.addItem("current day")
+        self.lGetData.addItem("last day")
+        self.lGetData.addItem("current week")
+        self.lGetData.addItem("last week")
+        self.lGetData.addItem("current month")
+        self.lGetData.addItem("last month")
+        self.lGetData.addItem("custom date")
         self.lGetData.currentIndexChanged.connect(self.getDataByMode)
 
         #print sum per day and project or every single entry?
+        self.cSumOrSingle = QCheckBox("Sum entries", self)
+        self.cSumOrSingle.setChecked(True)
         self.cSumOrSingle.stateChanged.connect(self.getSumOrSingle)
   
+        #resize widgets (x/y coordinates)
+        #project input field
+        self.label1.resize(200, 30)
+        self.iProject.resize(300, 30)
+        self.oMainTextField.resize(1000, 1000)
+        self.lGetData.resize(250,30)
+        self.cSumOrSingle.resize(250,30)
+        self.bClear.resize(200,30)
+        self.bClearDb.resize(200,30)
+        self.iDatetimeStart.resize(250,30)
+        self.iDatetimeEnd.resize(250,30)
+        self.bSaveTimeslot.resize(250,30)
+
+        #order Layout (x/y coordinates)
+        #column 1
+        self.label1.move(10, 10)
+        self.iProject.move(10, 60)
+        self.bNewProject.move(320, 60)
+        self.bStart.move(10, 110)
+        self.bEnd.move(120, 110)
+        self.bManualTracking.move(230, 110)
+        self.iDatetimeStart.move(340, 110)
+        self.iDatetimeEnd.move(340, 150)
+        self.bSaveTimeslot.move(600, 150)
+        self.oMainTextField.move(10, 210)
+
+        #column 2
+        self.label2.move(510, 10)
+        self.lGetData.move(510, 60)
+        self.cSumOrSingle.move(770, 60)
+
+        #column 3
+        self.label3.move(1010, 10)
+        self.bClear.move(1010,60)
+        self.bClearDb.move(1010,110)
+        
+
+        
 
     def __init__(self, sqlVer, sqlCon):
-        
+        super().__init__()
+
         self.sqlCon = sqlCon
 
         #init variables
@@ -351,13 +408,9 @@ class QtTimeMgrWindow(QMainWindow):
         vSqlResults = selectDbData(sqlCon, """SELECT * from projects order by name asc""", ())
         for results in vSqlResults:
             self.lProjects.append(results[1])
-
-        super(QtTimeMgrWindow, self).__init__()
-        absolute_path = os.path.dirname(__file__)
-        relative_path = "config"
-        full_path = os.path.join(absolute_path, relative_path)
-        uic.loadUi(full_path+'/MainWindow.ui',self)
-        self.setupUIfunctions()
+       
+        self.setWindowTitle("nomispaz Time Manager")
+        self.setupUI()
 
         self.printMessage("Connected to sqlite database version " + str(sqlVer))
         
@@ -442,10 +495,7 @@ def main():
     vDbConnection = None
     #create Database-Connection to sqllite-DB
     #important: "~" for home doesn't work
-    absolute_path = os.path.dirname(__file__)
-    relative_path = "data"
-    full_path = os.path.join(absolute_path, relative_path)
-    vDbVersion, vDbConnection = createDatabaseConnection(full_path+'/qttimemgr.db')
+    vDbVersion, vDbConnection = createDatabaseConnection(r'/home/simonheise/Documents/Coding/git_repos/qttimemgr/data/qttimemgr.db')
     if vDbConnection is not None:
         createDbModel(vDbConnection)
 

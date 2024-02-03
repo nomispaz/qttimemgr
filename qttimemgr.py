@@ -82,8 +82,15 @@ class QtTimeMgrWindow(QMainWindow):
     #start timer for project
     #create project if it doesn't exist
     def startTimer(self):
+
+        #check if a tracking is currently running
+        if self.vTrackingIsRunning == True:
+            #end it before starting a new tracking
+            self.endTimer()
+
         #read entered project
         self.curProject = self.iProject.text()
+        
         #if no project was entered, don't start tracking
         if self.curProject == "":
             self.printMessage("Please enter a project")
@@ -105,6 +112,9 @@ class QtTimeMgrWindow(QMainWindow):
                 + self.curProject
                 + " , Tracking started "
                 )
+
+            #set variable to store if a tracking is currently running
+            self.vTrackingIsRunning = True
 
             #clear project field
             self.iProject.clear()
@@ -141,6 +151,9 @@ class QtTimeMgrWindow(QMainWindow):
                             VALUES(?,?,?,?,?,?,?,?,?,?,?,?) '''
             vSqlData = (curProjectIdFromDb, curProjectNameFromDb, str(self.curDay), self.curWeek, self.curDay.month, self.curDay.year, floor(self.startTimestamp), str(self.startTime), floor(self.endTimestamp), str(self.endTime), str(self.curDay), str(self.curDay))
             sqlResult = insertDbData(self.sqlCon, vSqlQuery, vSqlData)
+
+            #set variable to store if a tracking is currently running
+            self.vTrackingIsRunning = False
 
     #save manually entered time
     def saveTimeSlot(self):
@@ -409,6 +422,7 @@ class QtTimeMgrWindow(QMainWindow):
         self.endTimestamp = 0
         self.vGetDataMode = 0
         self.vSumOrSingle = True
+        self.vTrackingIsRunning = False
 
         self.curWeek = date.today().isocalendar()[1]
         self.curDay = date.today()

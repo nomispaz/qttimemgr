@@ -1,22 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-
-    Copyright (C) 2024  Simon Heise
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
--->
 <ui version="4.0">
  <class>QtTimeMgrWindow</class>
  <widget class="QMainWindow" name="QtTimeMgrWindow">
@@ -274,12 +256,24 @@
     <property name="title">
      <string>Misc</string>
     </property>
+    <widget class="QMenu" name="menuDelete_data">
+     <property name="title">
+      <string>Delete data</string>
+     </property>
+     <addaction name="bDeleteProject"/>
+     <addaction name="bDeleteTrackingEntry"/>
+    </widget>
     <addaction name="bClear"/>
+    <addaction name="menuDelete_data"/>
+   </widget>
+   <widget class="QMenu" name="menuDatabase">
+    <property name="title">
+     <string>Database</string>
+    </property>
     <addaction name="bClearDb"/>
-    <addaction name="bDeleteProject"/>
-    <addaction name="bDeleteTrackingEntry"/>
    </widget>
    <addaction name="menuMisc"/>
+   <addaction name="menuDatabase"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="bClear">
@@ -290,6 +284,11 @@
   <action name="bClearDb">
    <property name="text">
     <string>Clear Database</string>
+   </property>
+  </action>
+  <action name="actionDelete_Data">
+   <property name="text">
+    <string>Delete Data</string>
    </property>
   </action>
   <action name="bDeleteProject">

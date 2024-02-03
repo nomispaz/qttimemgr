@@ -298,25 +298,15 @@ class QtTimeMgrWindow(QMainWindow):
 
     #cleanup database. Drop tables, then recreate tables
     def clearDatabase(self):
-        result1 = drop_table(self.sqlCon, '''drop table projects;''')
-        if result1 == "success":
-            self.printMessage("Table project dropped successfully.")
+
+        self.sqlFile = os.path.join(self.absolute_path, "config/dbmodel/dropAllTables.sql")
+        sqlerr, sqlQuery = execute_sqlfile(self.sqlCon, self.sqlFile)
+        if sqlerr != 0:
+            self.printMessage("SQL-Command " + sqlQuery + " failed with error: " + str(sqlerr))
         else:
-            self.printMessage(result1)
-        result2 = drop_table(self.sqlCon, '''drop table timetracking;''')
-        if result2 == "success":
-            self.printMessage("Table timetracking dropped successfully.")
-        else:
-            self.printMessage(result2)
-        createDbModel(self.sqlCon)
-        if result1 == "success":
-            self.printMessage("Table project created successfully.")
-        else:
-            self.printMessage(result1)
-        if result2 == "success":
-            self.printMessage("Table timetracking created successfully.")
-        else:
-            self.printMessage(result2)
+            self.printMessage("SQL-skript " + self.sqlFile + " ran successful.")
+
+        self.createDbModel()
         
         #update projectlist
         vSqlResults = selectDbData(self.sqlCon, """SELECT * from projects order by name asc""", ())
@@ -356,6 +346,35 @@ class QtTimeMgrWindow(QMainWindow):
     def deleteTrackingEntry(self):
         None
         
+    def updateModel(self, curDbVersion):
+        #the datamodel exists at this moment
+        for sqlFile in os.listdir(os.path.join(self.absolute_path, "config/dbmodel/")):
+            #run all files if the databaseversion is smaller than the filename
+            if sqlFile != "createModel.sql" and sqlFile != "dropAllTables.sql" and int(sqlFile.split(".")[0])>int(curDbVersion):
+                self.sqlFile = os.path.join(self.absolute_path, "config/dbmodel/"+sqlFile)
+                sqlerr, sqlQuery = execute_sqlfile(self.sqlCon, self.sqlFile)
+                if sqlerr != 0:
+                    self.printMessage("SQL-Command " + sqlQuery + " failed with error: " + str(sqlerr))
+                else:
+                    self.printMessage("SQL-skript " + self.sqlFile + " ran successful.")
+
+    def createDbModel(self):
+        #check the modelversion of the database
+        vSqlResults = selectDbData(self.sqlCon, """SELECT max(modelversion) from databasemodel""", ())
+        
+        if str(vSqlResults) == "no such table: databasemodel":
+            #initiate databasemodel
+            self.sqlFile = os.path.join(self.absolute_path, "config/dbmodel/createModel.sql")
+            sqlerr, sqlQuery = execute_sqlfile(self.sqlCon, self.sqlFile)
+            if sqlerr != 0:
+                self.printMessage("SQL-Command " + sqlQuery + " failed with error: " + str(sqlerr))
+            else:
+                self.printMessage("SQL-skript " + self.sqlFile + " ran successful.")
+            vSqlResults = selectDbData(self.sqlCon, """SELECT max(modelversion) from databasemodel""", ())
+        
+        self.updateModel(str(vSqlResults[0][0]))
+        
+
     def setupUIfunctions(self):
         
         #completer for project input field
@@ -410,8 +429,6 @@ class QtTimeMgrWindow(QMainWindow):
   
 
     def __init__(self, sqlVer, sqlCon):
-        
-        self.sqlCon = sqlCon
 
         #init variables
         self.lProjects = []
@@ -423,24 +440,36 @@ class QtTimeMgrWindow(QMainWindow):
         self.vGetDataMode = 0
         self.vSumOrSingle = True
         self.vTrackingIsRunning = False
-
         self.curWeek = date.today().isocalendar()[1]
         self.curDay = date.today()
 
-        #setup projects
-        vSqlResults = selectDbData(sqlCon, """SELECT * from projects order by name asc""", ())
-        for results in vSqlResults:
-            self.lProjects.append(results[1])
-
         super(QtTimeMgrWindow, self).__init__()
-        absolute_path = os.path.dirname(__file__)
-        relative_path = "config"
-        full_path = os.path.join(absolute_path, relative_path)
-        uic.loadUi(full_path+'/MainWindow.ui',self)
+        self.absolute_path = os.path.dirname(__file__)
+        uic.loadUi(os.path.join(self.absolute_path, "config/ui/QtTimeMgrWindow.ui"),self)
         self.setupUIfunctions()
 
-        self.printMessage("Connected to sqlite database version " + str(sqlVer))
+        # is a connection to the database possible, if yes, continue
+        if sqlCon is not None:
+
+            self.sqlCon = sqlCon
+            self.createDbModel()
+
+            #setup projects and feed to completer
+            vSqlResults = selectDbData(sqlCon, """SELECT * from projects order by name asc""", ())
+            for results in vSqlResults:
+                self.lProjects.append(results[1])
+            
+            #transfer new list to completer
+            self.cProject = QCompleter(self.lProjects,self)
+            self.cProject.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+            self.cProject.setCompletionMode(QCompleter.CompletionMode.UnfilteredPopupCompletion)
+            self.iProject.setCompleter(self.cProject)
+
+            self.printMessage("Connected to sqlite database version " + str(sqlVer))
         
+        else:
+            self.printMessage("Not connected to sqlite database. Cannot continue")
+
 
 
 ###############################################################################
@@ -455,14 +484,6 @@ def createDatabaseConnection(dbFile):
         DbVersion = e
     return DbVersion, DbConnection
 
-def create_table(conn, create_table_sql):
-    try:
-        dbCursor = conn.cursor()
-        dbCursor.execute(create_table_sql)
-        return "success"
-    except sqlite3.Error as e:
-        return e
-    
 def drop_table(conn, drop_table_sql):
     try:
         dbCursor = conn.cursor()
@@ -471,34 +492,6 @@ def drop_table(conn, drop_table_sql):
         return "success"
     except sqlite3.Error as e:
         return e
-
-
-def createDbModel(conn):
-    sql_create_projects_table = """ CREATE TABLE IF NOT EXISTS projects (
-                                        id integer PRIMARY KEY,
-                                        name text NOT NULL UNIQUE
-                                    ); """
-
-    sql_create_timetracking_table = """CREATE TABLE IF NOT EXISTS timetracking (
-                                    id integer PRIMARY KEY,
-                                    project_id integer,
-                                    project_name text,
-                                    date text NOT NULL,
-                                    calendarweek text NOT NULL,
-                                    month text NOT NULL,
-                                    year text NOT NULL,
-                                    starttimestamp integer NOT NULL,
-                                    starttime text NOT NULL,
-                                    endtimestamp integer NOT NULL,
-                                    endtime text NOT NULL,
-                                    created_on text,
-                                    last_edited_on text,
-                                    FOREIGN KEY (project_id) REFERENCES projects (id)
-                                );"""
-
-    result1 = create_table(conn, sql_create_projects_table)
-    result2 = create_table(conn, sql_create_timetracking_table)
-    return result1, result2
 
 def insertDbData(conn, sqlQuery, insertData):
     try:
@@ -526,6 +519,21 @@ def deleteDbData(conn, sqlQuery, whereData):
     except sqlite3.Error as e:
         return e
 
+def execute_sqlfile(conn, filename):
+    try:
+        dbCursor = conn.cursor()
+        #read files into array aSqlFile
+        filehandler = open(filename, 'r')
+        aSqlFile = filehandler.read()
+        aSqlFileSplit = aSqlFile.split("##")
+        filehandler.close()
+        for sqlQuery in aSqlFileSplit:
+            dbCursor.execute(sqlQuery)
+        conn.commit()
+    except sqlite3.OperationalError as e:
+        return e, sqlQuery
+    return 0, 0
+
 def main():
 
     vDbVersion = None
@@ -536,9 +544,7 @@ def main():
     relative_path = "data"
     full_path = os.path.join(absolute_path, relative_path)
     vDbVersion, vDbConnection = createDatabaseConnection(full_path+'/qttimemgr.db')
-    if vDbConnection is not None:
-        createDbModel(vDbConnection)
-
+    
     # You need one (and only one) QApplication instance per application.
     # Pass in sys.argv to allow command line arguments for your app.
     # If you know you won't use command line arguments QApplication([]) works too.

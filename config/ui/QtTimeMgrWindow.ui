@@ -258,10 +258,10 @@
     </property>
     <widget class="QMenu" name="menuDelete_data">
      <property name="title">
-      <string>Delete data</string>
+      <string>Edit data</string>
      </property>
      <addaction name="bDeleteProject"/>
-     <addaction name="bDeleteTrackingEntry"/>
+     <addaction name="bEditDeleteTrackingEntry"/>
     </widget>
     <addaction name="bClear"/>
     <addaction name="menuDelete_data"/>
@@ -296,9 +296,9 @@
     <string>Delete project</string>
    </property>
   </action>
-  <action name="bDeleteTrackingEntry">
+  <action name="bEditDeleteTrackingEntry">
    <property name="text">
-    <string>Delete tracking entry</string>
+    <string>Edit or delete tracking entry</string>
    </property>
   </action>
  </widget>

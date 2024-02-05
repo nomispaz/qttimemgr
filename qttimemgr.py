@@ -51,8 +51,106 @@ from PyQt6.QtWidgets import (
         QRadioButton,
         QCheckBox,
         QLabel,
-        QDateTimeEdit
+        QDateTimeEdit,
+        QDialog,
+        QAbstractItemView,
+        QTableWidgetItem,
+        QTableWidget
 )
+
+class QtListPopupDialog(QDialog):
+    def getEntryList(self):
+        return self.tShowTrackingEntries.selectedItems()
+
+    def deleteEntry(self):
+        lListofEntries = QTableWidgetItem()
+        lListofEntries = self.getEntryList()
+
+        firstItemIndex = lListofEntries[0].row()
+        lastItemIndex = lListofEntries[len(lListofEntries) - 1].row()
+        
+        # create one sql-query for deletion of all selected items
+        sqlQuery = "delete from timetracking where id in ( "
+
+        #
+        #lListofEntries contains list with all columns of all selected rows
+        #-->delete entries where index%NumColumns=0
+        for numEntry in range(0,len(lListofEntries) - 1):
+            entrySplit = str(lListofEntries[numEntry].text())
+            if numEntry%13 == 0:
+                sqlQuery = sqlQuery + entrySplit + ","
+        #cut last "," and finish query-string
+        sqlQuery = sqlQuery[:-1] + " )"
+
+        #Delete selection from database
+        deletionResult = deleteDbData(self.sqlCon, sqlQuery, ())
+        if deletionResult == 0:
+            #items where deleted --> update table
+            for numEntry in reversed(range(0,len(lListofEntries) - 1)):
+                try:
+                    self.tShowTrackingEntries.removeRow(lListofEntries[numEntry].row())
+                except:
+                    None
+
+    def editEntry(self):
+        None
+
+    def setupUIfunctions(self):
+
+        #button to delete entries
+        self.bDeleteEntry.clicked.connect(self.deleteEntry)
+
+        #button to edit entry
+        self.bEditEntry.clicked.connect(self.editEntry)
+
+        #button to close widget
+        self.bCloseListPopup.clicked.connect(self.close)
+
+        #enable multiselect in list
+        self.tShowTrackingEntries.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.tShowTrackingEntries.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        #fill list with tracking entries
+        self.numColumns = 2
+        #TODO read list from DB
+        #self.lTrackingEntries = ['1;11','2;21']
+        vSqlResults = selectDbData(self.sqlCon, """SELECT * from timetracking order by date, starttime asc""", ())
+        self.lTrackingEntries = []
+        self.numColumns = 0
+        #dynamially set up table with columns and rows (number of columns equals to number of attributes in timetracking table)
+        try:
+            self.tShowTrackingEntries.setColumnCount(len(vSqlResults[0]))
+        except:
+            self.tShowTrackingEntries.setColumnCount(1)
+        columnHeaders = (("id", "project_id", "project", "date", "calendarweek", "month", "year", "starttimestamp", "starttime", "endtimestamp", "endtime", "created_on", "last_edited_on"))
+        self.tShowTrackingEntries.setHorizontalHeaderLabels(columnHeaders)
+        
+        #write sql results into list
+        for results in vSqlResults:
+            self.lTrackingEntries.append(results)
+
+        #add rows to the table according to the number of tracking results
+        self.tShowTrackingEntries.setRowCount(len(self.lTrackingEntries))
+        
+        #fill table with entries
+        curRow = 0
+        for trackingEntry in self.lTrackingEntries:
+            for column in range(0,len(trackingEntry)):
+                qtTableItem = QTableWidgetItem(str(trackingEntry[column]))
+                self.tShowTrackingEntries.setItem(curRow, column, qtTableItem)
+            curRow += 1
+
+    def __init__(self, sqlCon, parent = None):
+
+        #init variables
+        self.lTrackingEntries = []
+        self.sqlCon = sqlCon
+
+        super(QtListPopupDialog, self).__init__(parent)
+        self.absolute_path = os.path.dirname(__file__)
+        uic.loadUi(os.path.join(self.absolute_path, "config/ui/QtListPopupDialog.ui"),self)
+
+        self.setupUIfunctions()
+        
 
 class QtTimeMgrWindow(QMainWindow):
 
@@ -343,8 +441,12 @@ class QtTimeMgrWindow(QMainWindow):
             self.cProject.setCompletionMode(QCompleter.CompletionMode.UnfilteredPopupCompletion)
             self.iProject.setCompleter(self.cProject)
 
-    def deleteTrackingEntry(self):
-        None
+    def editDeleteTrackingEntry(self):
+        # Create a Qt widget, which will be our window.
+        self.qtlistpopupdialog = QtListPopupDialog(self.sqlCon)
+        # IMPORTANT!!!!! Windows are hidden by default.
+        #qttimemgrWindow.setGeometry(500, 150, 500, 300)
+        self.qtlistpopupdialog.show()
         
     def updateModel(self, curDbVersion):
         #the datamodel exists at this moment
@@ -425,7 +527,7 @@ class QtTimeMgrWindow(QMainWindow):
         self.bDeleteProject.triggered.connect(self.deleteProject)
 
         #delete single timetracking entry
-        self.bDeleteTrackingEntry.triggered.connect(self.deleteTrackingEntry)
+        self.bEditDeleteTrackingEntry.triggered.connect(self.editDeleteTrackingEntry)
   
 
     def __init__(self, sqlVer, sqlCon):
@@ -516,6 +618,7 @@ def deleteDbData(conn, sqlQuery, whereData):
         dbCursor = conn.cursor()
         dbCursor.execute(sqlQuery, whereData)
         conn.commit()
+        return 0
     except sqlite3.Error as e:
         return e
 

@@ -28,7 +28,7 @@
 
 import sys, os
 from subprocess import run
-from time import sleep
+from time import sleep, mktime
 from datetime import date, datetime, timedelta
 from math import floor, ceil
 import sqlite3
@@ -77,7 +77,7 @@ class QtListPopupDialog(QDialog):
         #-->delete entries where index%NumColumns=0
         for numEntry in range(0,len(lListofEntries) - 1):
             entrySplit = str(lListofEntries[numEntry].text())
-            if numEntry%13 == 0:
+            if numEntry%self.numColumns == 0:
                 sqlQuery = sqlQuery + entrySplit + ","
         #cut last "," and finish query-string
         sqlQuery = sqlQuery[:-1] + " )"
@@ -92,16 +92,34 @@ class QtListPopupDialog(QDialog):
                 except:
                     None
 
-    def editEntry(self):
-        None
+    def commitEntry(self):
+        #write all changes into the database.
+        #modus FIFO so that if an entry was changed multiple times, the last change will be committed last
+        for entry in self.lChangedItems:
+            #date, starttime, endtime,
+            #compute starttimestamp, endtimestamp 
+            starttimestamp = floor(mktime(datetime.strptime(entry[2].text() + " " + entry[3].text(), "%Y-%m-%d %H:%M:%S").timetuple()))
+            endtimestamp = ceil(mktime(datetime.strptime(entry[2].text() + " " + entry[4].text(), "%Y-%m-%d %H:%M:%S").timetuple()))
 
+            sqlQuery = ''' UPDATE timetracking 
+                            SET date = ?, starttime = ?, starttimestamp = ?, endtime = ?, endtimestamp = ?
+                            where id = ? '''
+            sqlValues = (entry[2].text(), entry[3].text(), starttimestamp, entry[4].text(), endtimestamp, entry[0].text())
+            sqlerr = updateDbData(self.sqlCon, sqlQuery, sqlValues)
+    
+    def changedItem(self):
+        #save all changes in list
+        self.lChangedItems.append(self.tShowTrackingEntries.selectedItems())
+        for entry in self.lChangedItems:
+            print(len(entry))
+        
     def setupUIfunctions(self):
 
         #button to delete entries
         self.bDeleteEntry.clicked.connect(self.deleteEntry)
 
-        #button to edit entry
-        self.bEditEntry.clicked.connect(self.editEntry)
+        #button to commit entry changes
+        self.bEditEntry.clicked.connect(self.commitEntry)
 
         #button to close widget
         self.bCloseListPopup.clicked.connect(self.close)
@@ -110,12 +128,9 @@ class QtListPopupDialog(QDialog):
         self.tShowTrackingEntries.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.tShowTrackingEntries.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         #fill list with tracking entries
-        self.numColumns = 2
-        #TODO read list from DB
-        #self.lTrackingEntries = ['1;11','2;21']
         vSqlResults = selectDbData(self.sqlCon, """SELECT * from timetracking order by date, starttime asc""", ())
         self.lTrackingEntries = []
-        self.numColumns = 0
+        self.numColumns = 5
         #dynamially set up table with columns and rows (number of columns equals to number of attributes in timetracking table)
         try:
             self.tShowTrackingEntries.setColumnCount(len(vSqlResults[0]))
@@ -123,6 +138,15 @@ class QtListPopupDialog(QDialog):
             self.tShowTrackingEntries.setColumnCount(1)
         columnHeaders = (("id", "project_id", "project", "date", "calendarweek", "month", "year", "starttimestamp", "starttime", "endtimestamp", "endtime", "created_on", "last_edited_on"))
         self.tShowTrackingEntries.setHorizontalHeaderLabels(columnHeaders)
+        self.tShowTrackingEntries.hideColumn(1)
+        self.tShowTrackingEntries.hideColumn(4)
+        self.tShowTrackingEntries.hideColumn(5)
+        self.tShowTrackingEntries.hideColumn(6)
+        self.tShowTrackingEntries.hideColumn(7)
+        self.tShowTrackingEntries.hideColumn(9)
+        self.tShowTrackingEntries.hideColumn(11)
+        self.tShowTrackingEntries.hideColumn(12)
+        
         
         #write sql results into list
         for results in vSqlResults:
@@ -136,14 +160,21 @@ class QtListPopupDialog(QDialog):
         for trackingEntry in self.lTrackingEntries:
             for column in range(0,len(trackingEntry)):
                 qtTableItem = QTableWidgetItem(str(trackingEntry[column]))
+                if column == 0 or column == 2:
+                    #show tracking id and project but don't allow to change
+                    qtTableItem.setFlags(qtTableItem.flags() & ~Qt.ItemFlag.ItemIsEditable )
                 self.tShowTrackingEntries.setItem(curRow, column, qtTableItem)
             curRow += 1
+
+        #activate itemChanged signal for tShowTrackingEntries
+        self.tShowTrackingEntries.itemChanged.connect(self.changedItem)
 
     def __init__(self, sqlCon, parent = None):
 
         #init variables
         self.lTrackingEntries = []
         self.sqlCon = sqlCon
+        self.lChangedItems = []
 
         super(QtListPopupDialog, self).__init__(parent)
         self.absolute_path = os.path.dirname(__file__)
@@ -613,6 +644,15 @@ def selectDbData(conn, sqlQuery, whereData):
     except sqlite3.Error as e:
         return e
 
+def updateDbData(conn, sqlQuery, sqlData):
+    try:
+        dbCursor = conn.cursor()
+        dbCursor.execute(sqlQuery, sqlData)
+        conn.commit()
+        return 0
+    except sqlite3.Error as e:
+        return e
+
 def deleteDbData(conn, sqlQuery, whereData):
     try:
         dbCursor = conn.cursor()
@@ -652,7 +692,7 @@ def main():
     # Pass in sys.argv to allow command line arguments for your app.
     # If you know you won't use command line arguments QApplication([]) works too.
     qttimemgrApp = QApplication(sys.argv)
-    qttimemgrApp.setFont(QFont('Awesome', 20))
+    qttimemgrApp.setFont(QFont('Awesome', 16))
 
     # Create a Qt widget, which will be our window.
     qttimemgrWindow = QtTimeMgrWindow(vDbVersion, vDbConnection)

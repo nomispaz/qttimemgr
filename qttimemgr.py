@@ -185,14 +185,7 @@ class QtListPopupDialog(QDialog):
 
 class QtTimeMgrWindow(QMainWindow):
 
-    #add new project to database
-    def addProject(self):
-        #insert new project into database
-        vSqlQuery = ''' INSERT INTO projects(name)
-                        VALUES(?) '''
-        vSqlData = (self.iProject.text(),)
-        sqlResult = insertDbData(self.sqlCon, vSqlQuery, vSqlData)
-
+    def updateProjectlist(self):
         #update projectlist
         vSqlResults = selectDbData(self.sqlCon, """SELECT * from projects order by name asc""", ())
         self.lProjects = []
@@ -205,8 +198,21 @@ class QtTimeMgrWindow(QMainWindow):
         self.cProject.setCompletionMode(QCompleter.CompletionMode.UnfilteredPopupCompletion)
         self.iProject.setCompleter(self.cProject)
 
+    #add new project to database
+    def addProject(self):
+        vSqlQuery = ''' INSERT INTO projects(name)
+                        VALUES(?) '''
+        vSqlData = (self.iProject.text(),)
+        sqlResult = insertDbData(self.sqlCon, vSqlQuery, vSqlData)
+        #update projectlist
+        self.updateProjectlist()
+
         #print success message
-        self.printMessage("Project " + self.iProject.text() + " saved.")
+        print(sqlResult)
+        if str(sqlResult) == "UNIQUE constraint failed: projects.name":
+            self.printMessage("Project " + self.iProject.text() + " already exists.")
+        else:
+            self.printMessage("Project " + self.iProject.text() + " saved.")
 
     #start timer for project
     #create project if it doesn't exist
@@ -224,12 +230,7 @@ class QtTimeMgrWindow(QMainWindow):
         if self.curProject == "":
             self.printMessage("Please enter a project")
         else:
-            #if project doesn't exist in database, create it
-            vProjectsFromDB = selectDbData(self.sqlCon, """SELECT count(*) from projects where name = ?""", (self.curProject,))
-            for result in vProjectsFromDB:
-                projectcount = result[0]
-            if projectcount == 0:
-                self.addProject()
+            self.addProject()
 
             self.startTime = datetime.now().strftime("%H:%M:%S")
             self.startTimestamp = datetime.timestamp(datetime.now())
@@ -266,23 +267,27 @@ class QtTimeMgrWindow(QMainWindow):
                         )
                     )
                 )
-        
-            #query on pk --> results in exactly one record
-            vProjectsFromDB = selectDbData(self.sqlCon, """SELECT * from projects where name = ?""", (self.curProject,))
 
-            #read project id from database
-            for project in vProjectsFromDB:
-                curProjectIdFromDb = project[0]
-                curProjectNameFromDb = project[1]
-
-            #insert tracking result into database
-            vSqlQuery = ''' INSERT INTO timetracking(project_id, project_name, date, calendarweek, month, year, starttimestamp, starttime, endtimestamp, endtime, created_on, last_edited_on)
-                            VALUES(?,?,?,?,?,?,?,?,?,?,?,?) '''
-            vSqlData = (curProjectIdFromDb, curProjectNameFromDb, str(self.curDay), self.curWeek, self.curDay.month, self.curDay.year, floor(self.startTimestamp), str(self.startTime), floor(self.endTimestamp), str(self.endTime), str(self.curDay), str(self.curDay))
-            sqlResult = insertDbData(self.sqlCon, vSqlQuery, vSqlData)
-
+            self.insertTrackingToDb(self.curProject, self.curDay, self.curWeek, self.startTime, self.endTime, self.startTimestamp, self.endTimestamp)
             #set variable to store if a tracking is currently running
             self.vTrackingIsRunning = False
+
+    #insert tracking into database
+    def insertTrackingToDb(self, curProject, curDay, curWeek, startTime, endTime, startTimestamp, endTimestamp):
+        #query on pk --> results in exactly one record
+        vProjectsFromDB = selectDbData(self.sqlCon, """SELECT * from projects where name = ?""", (curProject,))
+        
+        #read project id from database
+        for project in vProjectsFromDB:
+            curProjectIdFromDb = project[0]
+            curProjectNameFromDb = project[1]
+        
+        #insert tracking result into database
+        vSqlQuery = ''' INSERT INTO timetracking(project_id, project_name, date, calendarweek, month, year, starttimestamp, starttime, endtimestamp, endtime, created_on, last_edited_on)
+                        VALUES(?,?,?,?,?,?,?,?,?,?,?,?) '''
+        vSqlData = (curProjectIdFromDb, curProjectNameFromDb, str(curDay), curWeek, curDay.month, curDay.year, floor(startTimestamp), str(startTime), floor(endTimestamp), str(endTime), str(curDay), str(curDay))
+        sqlResult = insertDbData(self.sqlCon, vSqlQuery, vSqlData)
+        return sqlResult
 
     #save manually entered time
     def saveTimeSlot(self):
@@ -291,13 +296,7 @@ class QtTimeMgrWindow(QMainWindow):
         if curProject == "":
             self.printMessage("Please enter a project")
         else:
-
-            #if project doesn't exist in database, create it
-            vProjectsFromDB = selectDbData(self.sqlCon, """SELECT count(*) from projects where name = ?""", (curProject,))
-            for result in vProjectsFromDB:
-                projectcount = result[0]
-            if projectcount == 0:
-                self.addProject()
+            self.addProject()
 
             curDay = self.iDatetimeStart.dateTime().toPyDateTime().date()
             #week
@@ -309,19 +308,7 @@ class QtTimeMgrWindow(QMainWindow):
             startTimestamp = datetime.timestamp(self.iDatetimeStart.dateTime().toPyDateTime())
             endTimestamp = datetime.timestamp(self.iDatetimeEnd.dateTime().toPyDateTime())
 
-            #query on pk --> results in exactly one record
-            vProjectsFromDB = selectDbData(self.sqlCon, """SELECT * from projects where name = ?""", (curProject,))
-
-            #read project id from database
-            for project in vProjectsFromDB:
-                curProjectIdFromDb = project[0]
-                curProjectNameFromDb = project[1]
-
-            #insert tracking result into database
-            vSqlQuery = ''' INSERT INTO timetracking(project_id, project_name, date, calendarweek, month, year, starttimestamp, starttime, endtimestamp, endtime, created_on, last_edited_on)
-                            VALUES(?,?,?,?,?,?,?,?,?,?,?,?) '''
-            vSqlData = (curProjectIdFromDb, curProjectNameFromDb, str(curDay), curWeek, curDay.month, curDay.year, floor(startTimestamp), str(startTime), floor(endTimestamp), str(endTime), str(curDay), str(curDay))
-            sqlResult = insertDbData(self.sqlCon, vSqlQuery, vSqlData)
+            self.insertTrackingToDb(curProject, curDay, curWeek, startTime, endTime, startTimestamp, endTimestamp)
 
     #toggle visibility of widgets for manual tracking if button is checked/unchecked
     def manualTracking(self):
@@ -438,16 +425,7 @@ class QtTimeMgrWindow(QMainWindow):
         self.createDbModel()
         
         #update projectlist
-        vSqlResults = selectDbData(self.sqlCon, """SELECT * from projects order by name asc""", ())
-        self.lProjects = []
-        for results in vSqlResults:
-            self.lProjects.append(results[1])
-        
-        #transfer new list to completer
-        self.cProject = QCompleter(self.lProjects,self)
-        self.cProject.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        self.cProject.setCompletionMode(QCompleter.CompletionMode.UnfilteredPopupCompletion)
-        self.iProject.setCompleter(self.cProject)
+        self.updateProjectlist()
     
     def deleteProject(self):
         vDeleteProject, okPressed = self.iDeleteProject = QInputDialog.getItem(self, "Enter Project", "Enter Project", self.lProjects, 0, False)
@@ -461,16 +439,7 @@ class QtTimeMgrWindow(QMainWindow):
             deleteDbData(self.sqlCon, """DELETE from projects where id = ?""", (curProjectIdFromDb,))
             
             #update projectlist
-            vSqlResults = selectDbData(self.sqlCon, """SELECT * from projects order by name asc""", ())
-            self.lProjects = []
-            for results in vSqlResults:
-                self.lProjects.append(results[1])
-
-            #transfer new list to completer
-            self.cProject = QCompleter(self.lProjects,self)
-            self.cProject.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-            self.cProject.setCompletionMode(QCompleter.CompletionMode.UnfilteredPopupCompletion)
-            self.iProject.setCompleter(self.cProject)
+            self.updateProjectlist()
 
     def editDeleteTrackingEntry(self):
         # Create a Qt widget, which will be our window.
@@ -588,15 +557,7 @@ class QtTimeMgrWindow(QMainWindow):
             self.createDbModel()
 
             #setup projects and feed to completer
-            vSqlResults = selectDbData(sqlCon, """SELECT * from projects order by name asc""", ())
-            for results in vSqlResults:
-                self.lProjects.append(results[1])
-            
-            #transfer new list to completer
-            self.cProject = QCompleter(self.lProjects,self)
-            self.cProject.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-            self.cProject.setCompletionMode(QCompleter.CompletionMode.UnfilteredPopupCompletion)
-            self.iProject.setCompleter(self.cProject)
+            self.updateProjectlist()
 
             self.printMessage("Connected to sqlite database version " + str(sqlVer))
         
@@ -617,15 +578,6 @@ def createDatabaseConnection(dbFile):
         DbVersion = e
     return DbVersion, DbConnection
 
-def drop_table(conn, drop_table_sql):
-    try:
-        dbCursor = conn.cursor()
-        dbCursor.execute(drop_table_sql)
-        conn.commit()
-        return "success"
-    except sqlite3.Error as e:
-        return e
-
 def insertDbData(conn, sqlQuery, insertData):
     try:
         dbCursor = conn.cursor()
@@ -633,7 +585,7 @@ def insertDbData(conn, sqlQuery, insertData):
         conn.commit()
         return dbCursor.lastrowid
     except sqlite3.Error as e:
-        print(e)
+        return e
 
 def selectDbData(conn, sqlQuery, whereData):
     try:

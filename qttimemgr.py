@@ -286,31 +286,31 @@ class QtTimeMgrWindow(QMainWindow):
 
     #save manually entered time
     def saveTimeSlot(self):
-        self.curProject = self.iProject.text()
+        curProject = self.iProject.text()
         #if no project was entered, don't start tracking
-        if self.curProject == "":
+        if curProject == "":
             self.printMessage("Please enter a project")
         else:
 
             #if project doesn't exist in database, create it
-            vProjectsFromDB = selectDbData(self.sqlCon, """SELECT count(*) from projects where name = ?""", (self.curProject,))
+            vProjectsFromDB = selectDbData(self.sqlCon, """SELECT count(*) from projects where name = ?""", (curProject,))
             for result in vProjectsFromDB:
                 projectcount = result[0]
             if projectcount == 0:
                 self.addProject()
 
-            self.curDay = self.iDatetimeStart.dateTime().toPyDateTime().date()
+            curDay = self.iDatetimeStart.dateTime().toPyDateTime().date()
             #week
-            self.curWeek = self.iDatetimeStart.dateTime().toPyDateTime().isocalendar()[1]
+            curWeek = self.iDatetimeStart.dateTime().toPyDateTime().isocalendar()[1]
             #start and end time
-            self.startTime = self.iDatetimeStart.dateTime().toPyDateTime().time().strftime("%H:%M:%S")
-            self.endTime = self.iDatetimeEnd.dateTime().toPyDateTime().time().strftime("%H:%M:%S")
+            startTime = self.iDatetimeStart.dateTime().toPyDateTime().time().strftime("%H:%M:%S")
+            endTime = self.iDatetimeEnd.dateTime().toPyDateTime().time().strftime("%H:%M:%S")
             #timestamp
-            self.startTimestamp = datetime.timestamp(self.iDatetimeStart.dateTime().toPyDateTime())
-            self.endTimestamp = datetime.timestamp(self.iDatetimeEnd.dateTime().toPyDateTime())
+            startTimestamp = datetime.timestamp(self.iDatetimeStart.dateTime().toPyDateTime())
+            endTimestamp = datetime.timestamp(self.iDatetimeEnd.dateTime().toPyDateTime())
 
             #query on pk --> results in exactly one record
-            vProjectsFromDB = selectDbData(self.sqlCon, """SELECT * from projects where name = ?""", (self.curProject,))
+            vProjectsFromDB = selectDbData(self.sqlCon, """SELECT * from projects where name = ?""", (curProject,))
 
             #read project id from database
             for project in vProjectsFromDB:
@@ -320,7 +320,7 @@ class QtTimeMgrWindow(QMainWindow):
             #insert tracking result into database
             vSqlQuery = ''' INSERT INTO timetracking(project_id, project_name, date, calendarweek, month, year, starttimestamp, starttime, endtimestamp, endtime, created_on, last_edited_on)
                             VALUES(?,?,?,?,?,?,?,?,?,?,?,?) '''
-            vSqlData = (curProjectIdFromDb, curProjectNameFromDb, str(self.curDay), self.curWeek, self.curDay.month, self.curDay.year, floor(self.startTimestamp), str(self.startTime), floor(self.endTimestamp), str(self.endTime), str(self.curDay), str(self.curDay))
+            vSqlData = (curProjectIdFromDb, curProjectNameFromDb, str(curDay), curWeek, curDay.month, curDay.year, floor(startTimestamp), str(startTime), floor(endTimestamp), str(endTime), str(curDay), str(curDay))
             sqlResult = insertDbData(self.sqlCon, vSqlQuery, vSqlData)
 
     #toggle visibility of widgets for manual tracking if button is checked/unchecked

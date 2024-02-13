@@ -27,6 +27,7 @@
 ########################################################################
 
 import sys, os
+from re import match
 from subprocess import run
 from time import sleep, mktime
 from datetime import date, datetime, timedelta
@@ -631,14 +632,23 @@ def execute_sqlfile(conn, filename):
 
 def main():
 
+    try:
+        if match("--datadir",sys.argv[1]):
+            datadir = sys.argv[1][10:]
+            if not os.path.exists(datadir):
+                os.makedirs(datadir)
+    except:
+        absolute_path = os.path.dirname(__file__)
+        relative_path = "data"
+        datadir = os.path.join(absolute_path, relative_path)
+        if not os.path.exists(datadir):
+                os.makedirs(datadir)
+
     vDbVersion = None
     vDbConnection = None
     #create Database-Connection to sqllite-DB
     #important: "~" for home doesn't work
-    absolute_path = os.path.dirname(__file__)
-    relative_path = "data"
-    full_path = os.path.join(absolute_path, relative_path)
-    vDbVersion, vDbConnection = createDatabaseConnection(full_path+'/qttimemgr.db')
+    vDbVersion, vDbConnection = createDatabaseConnection(datadir+'/qttimemgr.db')
     
     # You need one (and only one) QApplication instance per application.
     # Pass in sys.argv to allow command line arguments for your app.

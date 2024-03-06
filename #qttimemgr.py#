@@ -62,7 +62,7 @@ from PyQt6.QtWidgets import (
 class QtListPopupDialog(QDialog):
     def getEntryList(self):
         return self.tShowTrackingEntries.selectedItems()
-
+    
     def deleteEntry(self):
         lListofEntries = QTableWidgetItem()
         lListofEntries = self.getEntryList()
@@ -253,7 +253,7 @@ class QtTimeMgrWindow(QMainWindow):
 
             #clear project field
             self.iProject.clear()
-
+            insertDbData(self.sqlCon, sqlQuery, self.)
     #stop timer
     def endTimer(self):
         if not self.curProject == "":
